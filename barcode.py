@@ -6,6 +6,9 @@ from bs4 import BeautifulSoup
 import logging
 from pynput.keyboard import Key, Listener
 import os
+from flask import Flask, request, jsonify
+
+app = Flask(__name__)
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -13,6 +16,9 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 # Define the database connection (SQLite in this case)
 DATABASE_URL = "sqlite:///products.db"
 Base = declarative_base()
+
+engine = create_engine(DATABASE_URL)
+Session = sessionmaker(bind=engine)
 
 # Define the Product model
 class Product(Base):
@@ -44,8 +50,6 @@ def web_scrape_product_name(upc):
 # Function to get or fetch product name by UPC
 def get_product_name_by_upc(upc):
     # Create a database session
-    engine = create_engine(DATABASE_URL)
-    Session = sessionmaker(bind=engine)
     session = Session()
     
     # Ensure the products table exists
@@ -113,8 +117,35 @@ def on_release(key):
     if key == Key.esc:
         return False
 
+@app.route('/modify_product', methods=['POST'])
+def modify_product():
+    data = request.json
+    if not data or 'upc' not in data or 'name' not in data or not data['upc'] or not data['name']:
+        return jsonify({"error": "Both 'upc' and 'name' parameters are required and must be non-empty."}), 400
+    
+    upc = data['upc']
+    name = data['name']
+    
+    session = Session()
+    product = session.query(Product).filter_by(upc=upc).first()
+    
+    if product:
+        # If the product exists, update the name
+        product.name = name
+    else:
+        # If the product does not exist, add it
+        new_product = Product(upc=upc, name=name)
+        session.add(new_product)
+    
+    session.commit()
+    session.close()
+    
+    return jsonify({"status": "OK"}), 200
+
 # Main loop to continuously read barcodes and fetch product names
 if __name__ == "__main__":
     # Start listening for key press and release events
-    with Listener(on_press=on_press, on_release=on_release) as listener:
-        listener.join()
+    listener = Listener(on_press=on_press, on_release=on_release)
+    listener.start()
+    
+    app.run(host='0.0.0.0', port=8888)

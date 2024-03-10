@@ -6,7 +6,7 @@ RUN \
   apk add --no-cache \
     evtest python3 py3-pip\ 
     py3-sqlalchemy py3-requests \
-    py3-beautifulsoup4 kbd
+    py3-beautifulsoup4 py3-flask kbd
 
 # Copy data for add-on
 COPY run.sh /
