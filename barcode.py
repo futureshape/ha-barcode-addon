@@ -104,26 +104,36 @@ def on_release(key):
     if key == Key.esc:
         return False
 
-def process_barcode(upc):
-    logging.info(f"Processing barcode: {upc}")
-    product_name = get_product_name_by_upc(upc)
-
+def process_barcode(code):
+    logging.info(f"Processing barcode: {code}")
     url = "http://supervisor/core/api/services/shopping_list/add_item"
     headers = {"Authorization": f"Bearer {os.getenv('SUPERVISOR_TOKEN')}"}
 
+    # Spencial codes (non UPC)
+    if code.startswith("!ADD-"):
+        # Directly treat the remainder as the product name
+        product_name = code[len("!ADD-"):]
+        logging.info(f"Special ADD barcode detected. Product Name: {product_name}")
+        post_data = {"name": product_name}
+        response = requests.post(url, headers=headers, json=post_data)
+        logging.info(f"Posted to HA with response code {response.status_code}, body {response.content}")
+        return
+
+    # Normal barcode processing (Assuming UPC format)
+    product_name = get_product_name_by_upc(code)
     if product_name:
         logging.info(f"Product Name: {product_name}")
         post_data = {"name": product_name}
     else:
         logging.warning("Product name could not be found.")
-        post_data = {"name": f"Unknown product {upc}"}
+        post_data = {"name": f"Unknown product {code}"}
 
     response = requests.post(url, headers=headers, json=post_data)
     logging.info(f"Posted to HA with response code {response.status_code}, body {response.content}")
 
     if not product_name:
         url = "http://supervisor/core/api/services/input_text/set_value"
-        post_data = {"entity_id": "input_text.barcode_fix_upc", "value": "upc"}
+        post_data = {"entity_id": "input_text.barcode_fix_upc", "value": code}
         response = requests.post(url, headers=headers, json=post_data)
         logging.info(f"Posted to HA with response code {response.status_code}, body {response.content}")
 
