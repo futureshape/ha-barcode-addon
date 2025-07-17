@@ -34,7 +34,7 @@ def web_scrape_product_name(upc):
         response = requests.get(url)
         if response.status_code == 200:
             soup = BeautifulSoup(response.text, 'html.parser')
-            product_name_tag = soup.find('h6', class_='amplify-heading')
+            product_name_tag = soup.find('div', class_='text-xl')
             if product_name_tag:
                 return product_name_tag.text.strip()
             else:
@@ -92,20 +92,7 @@ def on_press(key):
             logging.info(f"Read line from input device: {upc}")
             buffer.clear()
 
-            product_name = get_product_name_by_upc(upc)
-
-            url = "http://supervisor/core/api/services/shopping_list/add_item"
-            headers = {"Authorization": f"Bearer {os.getenv('SUPERVISOR_TOKEN')}"}
-
-            if product_name:
-                logging.info(f"Product Name: {product_name}")
-                data = {"name": product_name}
-            else:
-                logging.warning("Product name could not be found.")
-                data = {"name": f"Unknown product {upc}"}
-
-            response = requests.post(url, headers=headers, json=data)
-            logging.info(f"Posted to HA with response code {response.status_code}, body {response.content}")
+            process_barcode(upc)
 
         elif key == Key.backspace:
             # Handle backspace (delete last character in buffer if it exists)
@@ -116,6 +103,29 @@ def on_release(key):
     # Stop listener if the escape key is pressed
     if key == Key.esc:
         return False
+
+def process_barcode(upc):
+    logging.info(f"Processing barcode: {upc}")
+    product_name = get_product_name_by_upc(upc)
+
+    url = "http://supervisor/core/api/services/shopping_list/add_item"
+    headers = {"Authorization": f"Bearer {os.getenv('SUPERVISOR_TOKEN')}"}
+
+    if product_name:
+        logging.info(f"Product Name: {product_name}")
+        post_data = {"name": product_name}
+    else:
+        logging.warning("Product name could not be found.")
+        post_data = {"name": f"Unknown product {upc}"}
+
+    response = requests.post(url, headers=headers, json=post_data)
+    logging.info(f"Posted to HA with response code {response.status_code}, body {response.content}")
+
+    if not product_name:
+        url = "http://supervisor/core/api/services/input_text/set_value"
+        post_data = {"entity_id": "input_text.barcode_fix_upc", "value": "upc"}
+        response = requests.post(url, headers=headers, json=post_data)
+        logging.info(f"Posted to HA with response code {response.status_code}, body {response.content}")
 
 @app.route('/modify_product', methods=['POST'])
 def modify_product():
@@ -140,6 +150,15 @@ def modify_product():
     session.commit()
     session.close()
     
+    return jsonify({"status": "OK"}), 200
+
+@app.route('/barcode_scanned', methods=['POST'])
+def barcode_scanned():
+    data = request.json
+    if not data or 'upc' not in data or not data['upc']:
+        return jsonify({"error": "'upc' parameter is required and must be non-empty."}), 400
+    upc = data['upc']
+    process_barcode(upc)
     return jsonify({"status": "OK"}), 200
 
 # Main loop to continuously read barcodes and fetch product names
