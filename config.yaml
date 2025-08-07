@@ -1,6 +1,6 @@
 name: "Barcode"
 description: "Reads data from barcode scanner to create a shopping list"
-version: "0.0.21"
+version: "0.0.23"
 slug: "barcode"
 init: false
 arch:

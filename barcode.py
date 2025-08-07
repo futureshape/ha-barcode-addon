@@ -109,7 +109,13 @@ def process_barcode(code):
     url = "http://supervisor/core/api/services/shopping_list/add_item"
     headers = {"Authorization": f"Bearer {os.getenv('SUPERVISOR_TOKEN')}"}
 
-    # Spencial codes (non UPC)
+    # Post barcode_scanned event to Home Assistant (first)
+    event_url = "http://supervisor/core/api/events/barcode_scanned"
+    event_data = {"barcode": code}
+    event_response = requests.post(event_url, headers=headers, json=event_data)
+    logging.info(f"Posted barcode_scanned event to HA with response code {event_response.status_code}, body {event_response.content}")
+
+    # Special codes (non UPC)
     if code.startswith("!ADD-"):
         # Directly treat the remainder as the product name
         product_name = code[len("!ADD-"):]
@@ -117,25 +123,24 @@ def process_barcode(code):
         post_data = {"name": product_name}
         response = requests.post(url, headers=headers, json=post_data)
         logging.info(f"Posted to HA with response code {response.status_code}, body {response.content}")
-        return
-
-    # Normal barcode processing (Assuming UPC format)
-    product_name = get_product_name_by_upc(code)
-    if product_name:
-        logging.info(f"Product Name: {product_name}")
-        post_data = {"name": product_name}
     else:
-        logging.warning("Product name could not be found.")
-        post_data = {"name": f"Unknown product {code}"}
+        # Normal barcode processing (Assuming UPC format)
+        product_name = get_product_name_by_upc(code)
+        if product_name:
+            logging.info(f"Product Name: {product_name}")
+            post_data = {"name": product_name}
+        else:
+            logging.warning("Product name could not be found.")
+            post_data = {"name": f"Unknown product {code}"}
 
-    response = requests.post(url, headers=headers, json=post_data)
-    logging.info(f"Posted to HA with response code {response.status_code}, body {response.content}")
-
-    if not product_name:
-        url = "http://supervisor/core/api/services/input_text/set_value"
-        post_data = {"entity_id": "input_text.barcode_fix_upc", "value": code}
         response = requests.post(url, headers=headers, json=post_data)
         logging.info(f"Posted to HA with response code {response.status_code}, body {response.content}")
+
+        if not product_name:
+            url = "http://supervisor/core/api/services/input_text/set_value"
+            post_data = {"entity_id": "input_text.barcode_fix_upc", "value": code}
+            response = requests.post(url, headers=headers, json=post_data)
+            logging.info(f"Posted to HA with response code {response.status_code}, body {response.content}")
 
 @app.route('/modify_product', methods=['POST'])
 def modify_product():
