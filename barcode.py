@@ -77,8 +77,8 @@ buffer = []
 
 def on_press(key):
     try:
-        # Check if the key.char is an alphanumeric character and append it to the buffer
-        if key.char.isalnum():
+        # Check if the key.char is a printable ASCII character and append it to the buffer
+        if key.char.isprintable():
             buffer.append(key.char)
     except AttributeError:
         # Check for special keys
