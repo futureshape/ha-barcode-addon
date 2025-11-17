@@ -653,10 +653,15 @@
             };
             
             console.log('Printing leftovers label:', labelData);
-            printLabel(labelData);
             
-            closeModal('leftoversModal');
-            showConfirmation(`Label printed: ${description}`);
+            try {
+                await printLabel(labelData);
+                closeModal('leftoversModal');
+                showConfirmation(`Label printed: ${description}`);
+            } catch (error) {
+                // Error already shown in printLabel, just log here
+                console.error('Submit failed:', error);
+            }
         }
 
         // Opened Ingredients functions
@@ -739,14 +744,19 @@
             };
             
             console.log('Printing ingredient label:', labelData);
-            printLabel(labelData);
             
-            closeModal('ingredientsModal');
-            showConfirmation(`Label printed: ${ingredientName} (Use by: ${formatDate(useByDate)})`);
+            try {
+                await printLabel(labelData);
+                closeModal('ingredientsModal');
+                showConfirmation(`Label printed: ${ingredientName} (Use by: ${formatDate(useByDate)})`);
+            } catch (error) {
+                // Error already shown in printLabel, just log here
+                console.error('Submit failed:', error);
+            }
         }
 
         // Standard Labels functions
-        function printStandardLabel(labelType, icon) {
+        async function printStandardLabel(labelType, icon) {
             const labelData = {
                 type: 'standard',
                 label: labelType,
@@ -755,16 +765,43 @@
             };
             
             console.log('Printing standard label:', labelData);
-            printLabel(labelData);
             
-            closeModal('standardLabelsModal');
-            showConfirmation(`Label printed: ${labelType}`);
+            try {
+                await printLabel(labelData);
+                closeModal('standardLabelsModal');
+                showConfirmation(`Label printed: ${labelType}`);
+            } catch (error) {
+                // Error already shown in printLabel, just log here
+                console.error('Submit failed:', error);
+            }
         }
 
-        // Placeholder integration functions
-        function printLabel(labelData) {
-            // TODO: Integrate with label printer
+        // Print label via Flask API
+        async function printLabel(labelData) {
             console.log('PRINT LABEL:', JSON.stringify(labelData, null, 2));
+            
+            try {
+                const response = await fetch('/print_label', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(labelData)
+                });
+                
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || 'Failed to print label');
+                }
+                
+                const result = await response.json();
+                console.log('✅ Label printed successfully:', result);
+                return result;
+            } catch (error) {
+                console.error('❌ Failed to print label:', error);
+                alert(`Failed to print label: ${error.message}`);
+                throw error;
+            }
         }
 
         // Helper functions

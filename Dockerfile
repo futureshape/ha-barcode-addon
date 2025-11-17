@@ -7,7 +7,8 @@ RUN \
     evtest python3 py3-pip\ 
     py3-sqlalchemy py3-requests \
     py3-beautifulsoup4 py3-flask kbd \
-    py3-pillow py3-qrcode py3-cairosvg
+    py3-pillow py3-qrcode py3-cairosvg \
+    nodejs npm
 
 # Copy data for add-on
 COPY run.sh /
@@ -22,6 +23,8 @@ COPY webapp/ /webapp/
 # pynput isn't packaged in Alpine Linux
 # Not worried about  --break-system-packages because we're inside a container
 RUN pip3 install --break-system-packages pynput
+
+RUN npm i -g @mmote/niimblue-node
 
 # change to persistent data directory so the cached products database isn't destroyed with upgrades
 WORKDIR /data

@@ -6,6 +6,9 @@ from bs4 import BeautifulSoup
 import logging
 from pynput.keyboard import Key, Listener
 import os
+import subprocess
+import tempfile
+from datetime import datetime
 from flask import Flask, request, jsonify, send_from_directory
 
 app = Flask(__name__)
@@ -181,6 +184,150 @@ def barcode_scanned():
     upc = data['upc']
     process_barcode(upc)
     return jsonify({"status": "OK"}), 200
+
+@app.route('/print_label', methods=['POST'])
+def print_label():
+    """
+    Print a label using make_label.py and niimblue-cli.
+    
+    Expected JSON payload:
+    {
+        "type": "leftovers" | "opened_ingredient" | "standard",
+        
+        # For leftovers:
+        "description": "Curry",
+        "timestamp": "2025-01-15T10:30:00Z",
+        "uid": "abc123",
+        
+        # For opened_ingredient:
+        "ingredient": "Milk",
+        "openedDate": "2025-01-15T10:30:00Z",
+        "useByDate": "2025-01-18T10:30:00Z",
+        "uid": "def456",
+        
+        # For standard:
+        "label": "Lactose Free",
+        "icon": "mdi:cow-off"
+    }
+    """
+    data = request.json
+    if not data or 'type' not in data:
+        return jsonify({"error": "'type' parameter is required"}), 400
+    
+    label_type = data['type']
+    
+    try:
+        # Create temporary file for the label image
+        with tempfile.NamedTemporaryFile(suffix='.png', delete=False) as tmp_file:
+            tmp_path = tmp_file.name
+        
+        # Get the script directory
+        script_dir = os.path.dirname(os.path.abspath(__file__))
+        make_label_path = os.path.join(script_dir, 'make_label.py')
+        
+        # Build the make_label.py command based on label type
+        if label_type == 'leftovers':
+            # QR code with "!R-{UID}" and timestamp line
+            uid = data.get('uid', 'UNKNOWN')
+            timestamp = data.get('timestamp')
+            
+            # Format timestamp as "01 Jan 2025"
+            if timestamp:
+                dt = datetime.fromisoformat(timestamp.replace('Z', '+00:00'))
+                date_str = dt.strftime('%d %b %Y')
+            else:
+                date_str = datetime.now().strftime('%d %b %Y')
+            
+            qr_content = f"!R-{uid}"
+            line1 = f"mdi:pot-steam {date_str}"
+            
+            cmd = ['python3', make_label_path, tmp_path, 'qr', qr_content, line1]
+        
+        elif label_type == 'opened_ingredient':
+            # QR code with "!R-{UID}", opened date line, and use-by date line
+            uid = data.get('uid', 'UNKNOWN')
+            opened_date = data.get('openedDate')
+            use_by_date = data.get('useByDate')
+            
+            # Format dates as "01 Jan 2025"
+            if opened_date:
+                dt_opened = datetime.fromisoformat(opened_date.replace('Z', '+00:00'))
+                opened_str = dt_opened.strftime('%d %b %Y')
+            else:
+                opened_str = datetime.now().strftime('%d %b %Y')
+            
+            if use_by_date:
+                dt_use_by = datetime.fromisoformat(use_by_date.replace('Z', '+00:00'))
+                use_by_str = dt_use_by.strftime('%d %b %Y')
+            else:
+                use_by_str = "Unknown"
+            
+            qr_content = f"!R-{uid}"
+            line1 = f"mdi:food-takeout-box-outline {opened_str}"
+            line2 = f"mdi:close-octagon-outline {use_by_str}"
+            
+            cmd = ['python3', make_label_path, tmp_path, 'qr', qr_content, line1, line2]
+        
+        elif label_type == 'standard':
+            # Icon on left, text on right
+            label_text = data.get('label', 'Label')
+            icon = data.get('icon', 'mdi:tag')
+            
+            cmd = ['python3', make_label_path, tmp_path, 'icon', icon, label_text]
+        
+        else:
+            return jsonify({"error": f"Unknown label type: {label_type}"}), 400
+        
+        # Generate the label image
+        logging.info(f"Generating label with command: {' '.join(cmd)}")
+        result = subprocess.run(cmd, capture_output=True, text=True, check=True)
+        logging.info(f"Label generated: {result.stdout}")
+        
+        # Print the label using niimblue-cli
+        printer_address = 'C2:BA:A9:03:04:99' # TODO: make configurable in addon config
+        print_cmd = ['niimblue-cli', 'print', '-t', 'ble', '-a', printer_address, tmp_path]
+        
+        logging.info(f"Printing label with command: {' '.join(print_cmd)}")
+        print_result = subprocess.run(print_cmd, capture_output=True, text=True, check=True)
+        logging.info(f"Label printed: {print_result.stdout}")
+        
+        # Clean up temporary file
+        try:
+            os.unlink(tmp_path)
+        except Exception as e:
+            logging.warning(f"Failed to delete temporary file {tmp_path}: {e}")
+        
+        return jsonify({
+            "status": "OK",
+            "message": "Label printed successfully",
+            "label_type": label_type
+        }), 200
+    
+    except subprocess.CalledProcessError as e:
+        logging.error(f"Failed to generate or print label: {e.stderr}")
+        # Try to clean up temporary file
+        try:
+            if 'tmp_path' in locals():
+                os.unlink(tmp_path)
+        except:
+            pass
+        return jsonify({
+            "error": "Failed to generate or print label",
+            "details": e.stderr
+        }), 500
+    
+    except Exception as e:
+        logging.error(f"Error in print_label: {str(e)}")
+        # Try to clean up temporary file
+        try:
+            if 'tmp_path' in locals():
+                os.unlink(tmp_path)
+        except:
+            pass
+        return jsonify({
+            "error": "Internal server error",
+            "details": str(e)
+        }), 500
 
 # Main loop to continuously read barcodes and fetch product names
 if __name__ == "__main__":
