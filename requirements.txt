@@ -2,3 +2,7 @@ sqlalchemy
 requests
 beautifulsoup4
 pynput
+flask
+pillow
+qrcode
+cairosvg
