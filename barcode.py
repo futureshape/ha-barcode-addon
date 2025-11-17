@@ -6,9 +6,15 @@ from bs4 import BeautifulSoup
 import logging
 from pynput.keyboard import Key, Listener
 import os
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, send_from_directory
 
 app = Flask(__name__)
+
+# Serve webapp files under /app path
+@app.route('/app/')
+@app.route('/app/<path:path>')
+def serve_webapp(path='index.html'):
+    return send_from_directory('webapp', path)
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')

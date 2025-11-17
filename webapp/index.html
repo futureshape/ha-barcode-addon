@@ -1,0 +1,871 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Label Printer</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@mdi/font@7.4.47/css/materialdesignicons.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            height: 100vh;
+            overflow: hidden;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 40px;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        h1 {
+            text-align: center;
+            color: white;
+            font-size: 48px;
+            margin-bottom: 60px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .main-menu {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 30px;
+            margin-bottom: 40px;
+        }
+
+        .menu-button {
+            background: white;
+            border: none;
+            border-radius: 20px;
+            padding: 50px 30px;
+            font-size: 28px;
+            font-weight: 600;
+            color: #333;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 15px;
+            min-height: 200px;
+        }
+
+        .menu-button:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 40px rgba(0,0,0,0.3);
+        }
+
+        .menu-button:active {
+            transform: translateY(-2px);
+        }
+
+        .menu-icon {
+            font-size: 64px;
+        }
+
+        .menu-icon.mdi::before {
+            font-size: 64px;
+        }
+
+        /* Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            max-width: 800px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+        }
+
+        .modal-title {
+            font-size: 32px;
+            font-weight: 700;
+            color: #333;
+        }
+
+        .close-button {
+            background: #f0f0f0;
+            border: none;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            font-size: 28px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .close-button:hover {
+            background: #e0e0e0;
+        }
+
+        .form-group {
+            margin-bottom: 30px;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 12px;
+            color: #555;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 20px;
+            font-size: 22px;
+            border: 2px solid #ddd;
+            border-radius: 12px;
+            transition: border-color 0.3s ease;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .quick-select {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .quick-select-button {
+            background: #f8f9fa;
+            border: 2px solid #e0e0e0;
+            border-radius: 12px;
+            padding: 20px;
+            font-size: 20px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .quick-select-button:hover {
+            background: #e9ecef;
+            border-color: #667eea;
+        }
+
+        .quick-select-button.selected {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+
+        .duration-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .duration-button {
+            background: #f8f9fa;
+            border: 2px solid #e0e0e0;
+            border-radius: 12px;
+            padding: 25px;
+            font-size: 20px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .duration-button:hover {
+            background: #e9ecef;
+            border-color: #667eea;
+        }
+
+        .duration-button.selected {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+
+        .custom-duration {
+            display: grid;
+            grid-template-columns: 1fr auto;
+            gap: 15px;
+            align-items: center;
+        }
+
+        .custom-duration input {
+            padding: 20px;
+            font-size: 20px;
+            border: 2px solid #ddd;
+            border-radius: 12px;
+        }
+
+        .custom-duration select {
+            padding: 20px;
+            font-size: 20px;
+            border: 2px solid #ddd;
+            border-radius: 12px;
+            background: white;
+            cursor: pointer;
+        }
+
+        .standard-labels-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 20px;
+        }
+
+        .standard-label-button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 15px;
+            padding: 40px;
+            font-size: 24px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .standard-label-icon {
+            font-size: 48px;
+        }
+
+        .standard-label-button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.3);
+        }
+
+        .standard-label-button:active {
+            transform: translateY(0);
+        }
+
+        .done-button {
+            width: 100%;
+            background: #28a745;
+            color: white;
+            border: none;
+            border-radius: 15px;
+            padding: 25px;
+            font-size: 26px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 20px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+
+        .done-button:hover {
+            background: #218838;
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.3);
+        }
+
+        .done-button:active {
+            transform: translateY(0);
+        }
+
+        .done-button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .section-divider {
+            border: none;
+            border-top: 2px solid #e0e0e0;
+            margin: 25px 0;
+        }
+
+        .hint-text {
+            color: #888;
+            font-size: 16px;
+            font-style: italic;
+            margin-top: 8px;
+        }
+
+        /* Responsive adjustments for smaller tablets */
+        @media (max-width: 1024px) {
+            .main-menu {
+                gap: 20px;
+            }
+
+            .menu-button {
+                padding: 40px 20px;
+                font-size: 24px;
+                min-height: 180px;
+            }
+
+            .menu-icon {
+                font-size: 56px;
+            }
+
+            h1 {
+                font-size: 40px;
+                margin-bottom: 40px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1><span class="mdi mdi-printer"></span> Label Printer</h1>
+        
+        <div class="main-menu">
+            <button class="menu-button" onclick="openLeftoversModal()">
+                <span class="menu-icon mdi mdi-food-takeout-box-outline"></span>
+                <div>Leftovers</div>
+            </button>
+            
+            <button class="menu-button" onclick="openIngredientsModal()">
+                <span class="menu-icon mdi mdi-package-variant"></span>
+                <div>Opened Ingredients</div>
+            </button>
+            
+            <button class="menu-button" onclick="openStandardLabelsModal()">
+                <span class="menu-icon mdi mdi-tag-multiple-outline"></span>
+                <div>Standard Labels</div>
+            </button>
+        </div>
+    </div>
+
+    <!-- Leftovers Modal -->
+    <div id="leftoversModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title"><span class="mdi mdi-food-takeout-box-outline"></span> Leftovers</h2>
+                <button class="close-button" onclick="closeModal('leftoversModal')">&times;</button>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">Description (Optional)</label>
+                <input type="text" id="leftoversDescription" class="form-input" placeholder="Enter description or select below">
+                <p class="hint-text">Leave blank for generic "Leftovers" label</p>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">Quick Select</label>
+                <div class="quick-select" id="leftoversQuickSelect">
+                    <!-- Populated dynamically from config.js -->
+                </div>
+            </div>
+            
+            <button class="done-button" onclick="submitLeftovers()">Done ✔️</button>
+        </div>
+    </div>
+
+    <!-- Opened Ingredients Modal -->
+    <div id="ingredientsModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title"><span class="mdi mdi-package-variant"></span> Opened Ingredients</h2>
+                <button class="close-button" onclick="closeModal('ingredientsModal')">&times;</button>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">Ingredient Name *</label>
+                <input type="text" id="ingredientName" class="form-input" placeholder="Type name or scan barcode" required>
+                <p class="hint-text">Use barcode scanner or type manually</p>
+            </div>
+            
+            <hr class="section-divider">
+            
+            <div class="form-group">
+                <label class="form-label">Use By Duration *</label>
+                <div class="duration-grid" id="durationGrid">
+                    <!-- Populated dynamically from config.js -->
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">Custom Duration</label>
+                <div class="custom-duration">
+                    <input type="number" id="customDurationValue" min="1" placeholder="Enter number">
+                    <select id="customDurationType">
+                        <option value="days">Days</option>
+                        <option value="weeks">Weeks</option>
+                    </select>
+                </div>
+            </div>
+            
+            <button class="done-button" id="ingredientsDoneButton" onclick="submitIngredient()" disabled>Done ✔️</button>
+        </div>
+    </div>
+
+    <!-- Standard Labels Modal -->
+    <div id="standardLabelsModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title"><span class="mdi mdi-tag-multiple-outline"></span> Standard Labels</h2>
+                <button class="close-button" onclick="closeModal('standardLabelsModal')">&times;</button>
+            </div>
+            
+            <div class="standard-labels-grid" id="standardLabelsGrid">
+                <!-- Populated dynamically from config.js -->
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        // Import configuration
+        import { STANDARD_LEFTOVERS, STANDARD_LABELS, DURATION_PRESETS } from './config.js';
+        import { HA_URL, HA_TOKEN, HA_TODO_LIST } from './secrets.js';
+        
+        // Import Home Assistant websocket library
+        import {
+            createConnection,
+            createLongLivedTokenAuth,
+        } from "https://cdn.skypack.dev/home-assistant-js-websocket@9.5.0";
+
+        // Expose config to window for use by regular scripts
+        window.STANDARD_LEFTOVERS = STANDARD_LEFTOVERS;
+        window.STANDARD_LABELS = STANDARD_LABELS;
+        window.DURATION_PRESETS = DURATION_PRESETS;
+
+        // Home Assistant connection state
+        let haConnection = null;
+        let haConnectionAttempts = 0;
+        const MAX_HA_CONNECTION_ATTEMPTS = 3;
+
+        // ===== HOME ASSISTANT CONNECTION =====
+        async function connectToHomeAssistant() {
+            if (haConnection) {
+                console.log('Already connected to Home Assistant');
+                return haConnection;
+            }
+
+            try {
+                console.log('Connecting to Home Assistant...');
+                // Remove trailing slash from URL for createLongLivedTokenAuth
+                const hassUrl = HA_URL.replace(/\/$/, '').replace('wss://', 'https://');
+                const auth = createLongLivedTokenAuth(hassUrl, HA_TOKEN);
+
+                haConnection = await createConnection({ auth });
+
+                console.log('✅ Connected to Home Assistant');
+                haConnectionAttempts = 0;
+                return haConnection;
+            } catch (error) {
+                console.error('❌ Failed to connect to Home Assistant:', error);
+                haConnectionAttempts++;
+                
+                if (haConnectionAttempts < MAX_HA_CONNECTION_ATTEMPTS) {
+                    console.log(`Retrying connection (attempt ${haConnectionAttempts + 1}/${MAX_HA_CONNECTION_ATTEMPTS})...`);
+                    setTimeout(() => connectToHomeAssistant(), 2000);
+                } else {
+                    console.warn('Max connection attempts reached. Will retry on next item submission.');
+                }
+                return null;
+            }
+        }
+
+        async function addToHomeAssistantTodoList(itemName, options = {}) {
+            try {
+                if (!haConnection) {
+                    console.log('No HA connection, attempting to connect...');
+                    await connectToHomeAssistant();
+                }
+
+                if (!haConnection) {
+                    console.error('Cannot add to todo list: No Home Assistant connection');
+                    return null;
+                }
+
+                console.log(`Adding "${itemName}" to ${HA_TODO_LIST}...`);
+                
+                const serviceData = {
+                    item: itemName,
+                };
+
+                // Add description if provided
+                if (options.description) {
+                    serviceData.description = options.description;
+                }
+
+                // Add due date if provided (for ingredients)
+                if (options.due_date) {
+                    serviceData.due_date = options.due_date;
+                }
+                
+                await haConnection.sendMessagePromise({
+                    type: 'call_service',
+                    domain: 'todo',
+                    service: 'add_item',
+                    service_data: serviceData,
+                    target: {
+                        entity_id: HA_TODO_LIST,
+                    },
+                });
+
+                // Get the list of items to retrieve the UID of the newly created item
+                const itemsResponse = await haConnection.sendMessagePromise({
+                    type: 'call_service',
+                    domain: 'todo',
+                    service: 'get_items',
+                    target: {
+                        entity_id: HA_TODO_LIST,
+                    },
+                    return_response: true,
+                });
+
+                // The last item in the list is the one we just created
+                const items = itemsResponse?.response?.[HA_TODO_LIST]?.items || [];
+                const lastItem = items[items.length - 1];
+                const uid = lastItem?.uid || null;
+                
+                console.log(`✅ Added "${itemName}" to Home Assistant todo list (UID: ${uid})`);
+                return uid;
+            } catch (error) {
+                console.error('❌ Failed to add item to Home Assistant todo list:', error);
+                // Reset connection on error to force reconnect
+                haConnection = null;
+                haConnectionAttempts = 0;
+                return null;
+            }
+        }
+
+        // Expose to window for use by regular scripts
+        window.addToHomeAssistantTodoList = addToHomeAssistantTodoList;
+        window.connectToHomeAssistant = connectToHomeAssistant;
+
+        // Initialize connection on load
+        window.addEventListener('DOMContentLoaded', () => {
+            connectToHomeAssistant();
+        });
+    </script>
+
+    <script>
+        // State management
+        let selectedDuration = null;
+        let selectedDurationType = null;
+
+        // Modal functions
+        function openLeftoversModal() {
+            document.getElementById('leftoversModal').classList.add('active');
+            document.getElementById('leftoversDescription').value = '';
+            // Clear all quick select buttons
+            document.querySelectorAll('#leftoversModal .quick-select-button').forEach(btn => {
+                btn.classList.remove('selected');
+            });
+        }
+
+        function openIngredientsModal() {
+            document.getElementById('ingredientsModal').classList.add('active');
+            document.getElementById('ingredientName').value = '';
+            document.getElementById('customDurationValue').value = '';
+            selectedDuration = null;
+            selectedDurationType = null;
+            updateIngredientsDoneButton();
+            // Clear all duration button selections
+            document.querySelectorAll('.duration-button').forEach(btn => {
+                btn.classList.remove('selected');
+            });
+            // Auto-focus for barcode scanner
+            setTimeout(() => {
+                document.getElementById('ingredientName').focus();
+            }, 100);
+        }
+
+        function openStandardLabelsModal() {
+            document.getElementById('standardLabelsModal').classList.add('active');
+        }
+
+        function closeModal(modalId) {
+            document.getElementById(modalId).classList.remove('active');
+        }
+
+        // Leftovers functions
+        function selectLeftover(name) {
+            document.getElementById('leftoversDescription').value = name;
+            // Update visual selection
+            document.querySelectorAll('#leftoversModal .quick-select-button').forEach(btn => {
+                if (btn.textContent === name) {
+                    btn.classList.add('selected');
+                } else {
+                    btn.classList.remove('selected');
+                }
+            });
+        }
+
+        async function submitLeftovers() {
+            const description = document.getElementById('leftoversDescription').value.trim() || 'Leftovers';
+            
+            const now = new Date();
+            const todayDate = now.toLocaleDateString('en-GB', {
+                day: '2-digit',
+                month: 'short',
+                year: 'numeric'
+            });
+            
+            // Add to Home Assistant todo list with type and date
+            const uid = await addToHomeAssistantTodoList(description, {
+                description: `Type: Leftover\nMade: ${todayDate}`
+            });
+            
+            const labelData = {
+                type: 'leftovers',
+                description: description,
+                timestamp: now.toISOString(),
+                uid: uid
+            };
+            
+            console.log('Printing leftovers label:', labelData);
+            printLabel(labelData);
+            
+            closeModal('leftoversModal');
+            showConfirmation(`Label printed: ${description}`);
+        }
+
+        // Opened Ingredients functions
+        function selectDuration(value, type) {
+            selectedDuration = value;
+            selectedDurationType = type;
+            
+            // Update visual selection
+            document.querySelectorAll('.duration-button').forEach(btn => {
+                btn.classList.remove('selected');
+            });
+            event.target.classList.add('selected');
+            
+            // Clear custom duration
+            document.getElementById('customDurationValue').value = '';
+            
+            updateIngredientsDoneButton();
+        }
+
+        function updateIngredientsDoneButton() {
+            const ingredientName = document.getElementById('ingredientName').value.trim();
+            const customValue = document.getElementById('customDurationValue').value;
+            const hasDuration = selectedDuration !== null || customValue !== '';
+            const doneButton = document.getElementById('ingredientsDoneButton');
+            
+            doneButton.disabled = !(ingredientName && hasDuration);
+        }
+
+        async function submitIngredient() {
+            const ingredientName = document.getElementById('ingredientName').value.trim();
+            const customValue = document.getElementById('customDurationValue').value;
+            const customType = document.getElementById('customDurationType').value;
+            
+            let duration = selectedDuration;
+            let durationType = selectedDurationType;
+            
+            // Use custom duration if provided
+            if (customValue) {
+                duration = parseInt(customValue);
+                durationType = customType;
+            }
+            
+            if (!ingredientName || !duration || !durationType) {
+                alert('Please provide ingredient name and duration');
+                return;
+            }
+            
+            // Calculate use-by date
+            const now = new Date();
+            const useByDate = new Date();
+            if (durationType === 'days') {
+                useByDate.setDate(useByDate.getDate() + duration);
+            } else {
+                useByDate.setDate(useByDate.getDate() + (duration * 7));
+            }
+            
+            const todayDate = now.toLocaleDateString('en-GB', {
+                day: '2-digit',
+                month: 'short',
+                year: 'numeric'
+            });
+            
+            // Format due date as YYYY-MM-DD for Home Assistant
+            const dueDateFormatted = useByDate.toISOString().split('T')[0];
+            
+            // Add to Home Assistant todo list with type, opened date, and due date
+            const uid = await addToHomeAssistantTodoList(ingredientName, {
+                description: `Type: Ingredient\nOpened: ${todayDate}`,
+                due_date: dueDateFormatted
+            });
+            
+            const labelData = {
+                type: 'opened_ingredient',
+                ingredient: ingredientName,
+                duration: duration,
+                durationType: durationType,
+                useByDate: useByDate.toISOString(),
+                openedDate: now.toISOString(),
+                uid: uid
+            };
+            
+            console.log('Printing ingredient label:', labelData);
+            printLabel(labelData);
+            
+            closeModal('ingredientsModal');
+            showConfirmation(`Label printed: ${ingredientName} (Use by: ${formatDate(useByDate)})`);
+        }
+
+        // Standard Labels functions
+        function printStandardLabel(labelType, icon) {
+            const labelData = {
+                type: 'standard',
+                label: labelType,
+                icon: icon,
+                timestamp: new Date().toISOString()
+            };
+            
+            console.log('Printing standard label:', labelData);
+            printLabel(labelData);
+            
+            closeModal('standardLabelsModal');
+            showConfirmation(`Label printed: ${labelType}`);
+        }
+
+        // Placeholder integration functions
+        function printLabel(labelData) {
+            // TODO: Integrate with label printer
+            console.log('PRINT LABEL:', JSON.stringify(labelData, null, 2));
+        }
+
+        // Helper functions
+        function formatDate(date) {
+            return date.toLocaleDateString('en-GB', {
+                day: '2-digit',
+                month: 'short',
+                year: '2-digit'
+            });
+        }
+
+        function showConfirmation(message) {
+            // Simple confirmation feedback
+            const originalTitle = document.querySelector('h1').textContent;
+            document.querySelector('h1').textContent = '✅ ' + message;
+            document.querySelector('h1').style.color = '#28a745';
+            
+            setTimeout(() => {
+                document.querySelector('h1').textContent = originalTitle;
+                document.querySelector('h1').style.color = 'white';
+            }, 2000);
+        }
+
+        // Event listeners for real-time validation
+        document.addEventListener('DOMContentLoaded', function() {
+            // Populate leftovers quick select buttons
+            const leftoversQuickSelect = document.getElementById('leftoversQuickSelect');
+            if (leftoversQuickSelect && window.STANDARD_LEFTOVERS) {
+                window.STANDARD_LEFTOVERS.forEach(leftover => {
+                    const button = document.createElement('button');
+                    button.className = 'quick-select-button';
+                    button.textContent = leftover;
+                    button.onclick = () => selectLeftover(leftover);
+                    leftoversQuickSelect.appendChild(button);
+                });
+            }
+
+            // Populate duration grid buttons
+            const durationGrid = document.getElementById('durationGrid');
+            if (durationGrid && window.DURATION_PRESETS) {
+                window.DURATION_PRESETS.forEach(preset => {
+                    const button = document.createElement('button');
+                    button.className = 'duration-button';
+                    button.textContent = preset.label;
+                    button.onclick = () => selectDuration(preset.value, preset.type);
+                    durationGrid.appendChild(button);
+                });
+            }
+
+            // Populate standard labels grid
+            const standardLabelsGrid = document.getElementById('standardLabelsGrid');
+            if (standardLabelsGrid && window.STANDARD_LABELS) {
+                window.STANDARD_LABELS.forEach(labelConfig => {
+                    const button = document.createElement('button');
+                    button.className = 'standard-label-button';
+                    
+                    // Create icon element
+                    const iconSpan = document.createElement('span');
+                    iconSpan.className = 'standard-label-icon mdi ' + labelConfig.icon.replace(':', '-');
+                    
+                    // Create label text element
+                    const labelSpan = document.createElement('span');
+                    labelSpan.textContent = labelConfig.label;
+                    
+                    button.appendChild(iconSpan);
+                    button.appendChild(labelSpan);
+                    button.onclick = () => printStandardLabel(labelConfig.label, labelConfig.icon);
+                    standardLabelsGrid.appendChild(button);
+                });
+            }
+            
+            // Ingredient name input
+            const ingredientInput = document.getElementById('ingredientName');
+            if (ingredientInput) {
+                ingredientInput.addEventListener('input', updateIngredientsDoneButton);
+            }
+            
+            // Custom duration input
+            const customDurationInput = document.getElementById('customDurationValue');
+            if (customDurationInput) {
+                customDurationInput.addEventListener('input', function() {
+                    if (this.value) {
+                        selectedDuration = null;
+                        selectedDurationType = null;
+                        document.querySelectorAll('.duration-button').forEach(btn => {
+                            btn.classList.remove('selected');
+                        });
+                    }
+                    updateIngredientsDoneButton();
+                });
+            }
+            
+            // Close modals on background click
+            document.querySelectorAll('.modal').forEach(modal => {
+                modal.addEventListener('click', function(e) {
+                    if (e.target === this) {
+                        this.classList.remove('active');
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+</html>
