@@ -14,6 +14,8 @@ RUN chmod a+x /run.sh
 
 COPY barcode.py /
 
+COPY webapp/ /webapp/
+
 # pynput isn't packaged in Alpine Linux
 # Not worried about  --break-system-packages because we're inside a container
 RUN pip3 install --break-system-packages pynput
