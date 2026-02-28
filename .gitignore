@@ -2,3 +2,4 @@ products.db
 webapp/secrets.js
 .venv/
 __pycache__/
+.DS_Store

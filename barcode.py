@@ -2,7 +2,6 @@ from sqlalchemy import create_engine, Column, String
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 import requests
-from bs4 import BeautifulSoup
 import logging
 from pynput.keyboard import Key, Listener
 import os
@@ -36,21 +35,35 @@ class Product(Base):
     upc = Column(String, primary_key=True)
     name = Column(String, nullable=True)  # Allows NULL values
 
-# Function to scrape product name from the web
-def web_scrape_product_name(upc):
-    url = f"https://www.hellosupermarket.co.uk/product/{upc}"
+# Function to look up product name via barcode API
+def api_lookup_product_name(upc):
+    url = f"https://n8n.futureshape.net/webhook/barcode-search?barcode={upc}"
+    api_key = os.getenv('BARCODE_API_KEY', '')
+    headers = {'X-API-Key': api_key}
     try:
-        response = requests.get(url)
+        response = requests.get(url, headers=headers)
         if response.status_code == 200:
-            soup = BeautifulSoup(response.text, 'html.parser')
-            product_name_tag = soup.find('div', class_='text-xl')
-            if product_name_tag:
-                return product_name_tag.text.strip()
-            else:
-                logging.info(f"Product name not found for UPC: {upc}")
+            data = response.json()
+            brand = data.get('brand', '').strip()
+            description = data.get('description', '').strip()
+            size = data.get('size', '').strip()
+
+            if not description:
+                logging.info(f"Product description not found for UPC: {upc}")
                 return None
+
+            # Omit brand if description already starts with it
+            if brand and not description.startswith(brand):
+                parts = [brand, description]
+            else:
+                parts = [description]
+
+            if size:
+                parts.append(size)
+
+            return ' '.join(parts)
         else:
-            logging.error(f"Failed to retrieve product page for UPC: {upc}, Status code: {response.status_code}")
+            logging.error(f"Failed to retrieve product for UPC: {upc}, Status code: {response.status_code}")
             return None
     except Exception as e:
         logging.error(f"Error retrieving product information for UPC: {upc}, Error: {str(e)}")
@@ -71,8 +84,8 @@ def get_product_name_by_upc(upc):
         # If found, return the product name
         return product.name
     else:
-        # If not found, attempt to look up the product name through web scraping
-        product_name = web_scrape_product_name(upc)
+        # If not found, attempt to look up the product name via API
+        product_name = api_lookup_product_name(upc)
         
         # If the product name is not found, save a NULL value in the product name column
         new_product = Product(upc=upc, name=product_name)  # product_name will be None if not found

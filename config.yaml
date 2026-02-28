@@ -11,8 +11,10 @@ arch:
   - i386
 options:
   keyboard_device: null
+  barcode_api_key: ""
 schema:
   keyboard_device: device
+  barcode_api_key: password
 full_access: true
 homeassistant_api: true
 host_dbus: true
