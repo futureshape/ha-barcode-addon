@@ -81,20 +81,20 @@ def get_product_name_by_upc(upc):
     
     # Try to find the product in the database
     product = session.query(Product).filter_by(upc=upc).first()
-    
+
     if product:
-        # If found, return the product name
-        return product.name
-    else:
-        # If not found, attempt to look up the product name via API
-        product_name = api_lookup_product_name(upc)
-        
-        # If the product name is not found, save a NULL value in the product name column
-        new_product = Product(upc=upc, name=product_name)  # product_name will be None if not found
-        session.add(new_product)
+        if product.name is not None:
+            return product.name
+        # Wipe blank cache entry so we can retry
+        session.delete(product)
         session.commit()
-        
-        return product_name
+
+    product_name = api_lookup_product_name(upc)
+    if product_name is not None:
+        session.add(Product(upc=upc, name=product_name))
+        session.commit()
+
+    return product_name
     
 # Initialize an empty list to serve as a buffer for characters
 buffer = []
