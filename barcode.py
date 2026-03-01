@@ -126,7 +126,7 @@ def on_press(key):
 def on_release(key):
     # Stop listener if the escape key is pressed
     if key == Key.esc:
-        return False
+        listener.stop()
 
 def process_barcode(code):
     logging.info(f"Processing barcode: {code}")
@@ -150,7 +150,7 @@ def process_barcode(code):
     else:
         # Normal barcode processing (Assuming UPC format)
         product_name = get_product_name_by_upc(code)
-        if product_name:
+        if product_name is not None:
             logging.info(f"Product Name: {product_name}")
             post_data = {"name": product_name}
         else:
@@ -160,7 +160,7 @@ def process_barcode(code):
         response = requests.post(url, headers=headers, json=post_data)
         logging.info(f"Posted to HA with response code {response.status_code}, body {response.content}")
 
-        if not product_name:
+        if product_name is None:
             url = "http://supervisor/core/api/services/input_text/set_value"
             post_data = {"entity_id": "input_text.barcode_fix_upc", "value": code}
             response = requests.post(url, headers=headers, json=post_data)
@@ -350,4 +350,7 @@ if __name__ == "__main__":
     listener = Listener(on_press=on_press, on_release=on_release)
     listener.start()
     
-    app.run(host='0.0.0.0', port=8888)
+    try:
+        app.run(host='0.0.0.0', port=8888)
+    finally:
+        listener.stop()
