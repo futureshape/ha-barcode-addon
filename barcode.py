@@ -41,7 +41,9 @@ def api_lookup_product_name(upc):
     api_key = os.getenv('BARCODE_API_KEY', '')
     headers = {'X-API-Key': api_key}
     try:
+        logging.info(f"Barcode API request: GET {url}")
         response = requests.get(url, headers=headers)
+        logging.info(f"Barcode API response: status={response.status_code}, body={response.text}")
         if response.status_code == 200:
             data = response.json()
             brand = data.get('brand', '').strip()
