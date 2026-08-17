@@ -1,6 +1,6 @@
 name: "Barcode"
 description: "Reads data from barcode scanner to create a shopping list"
-version: "0.0.27"
+version: "0.0.28"
 slug: "barcode"
 init: false
 arch:
@@ -12,9 +12,11 @@ arch:
 options:
   keyboard_device: null
   barcode_api_key: ""
+  printer_address: "AA:BB:CC:DD:EE:FF"
 schema:
   keyboard_device: device
   barcode_api_key: password
+  printer_address: str
 full_access: true
 homeassistant_api: true
 host_dbus: true

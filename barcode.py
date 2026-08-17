@@ -10,6 +10,8 @@ import tempfile
 from datetime import datetime
 from flask import Flask, request, jsonify, send_from_directory
 
+from printer_adapter import print_with_qutie_printer
+
 app = Flask(__name__)
 
 # Serve webapp files under /app path
@@ -298,13 +300,10 @@ def print_label():
         result = subprocess.run(cmd, capture_output=True, text=True, check=True)
         logging.info(f"Label generated: {result.stdout}")
         
-        # Print the label using niimblue-cli
-        printer_address = 'C2:BA:A9:03:04:99' # TODO: make configurable in addon config
-        print_cmd = ['niimblue-cli', 'print', '-t', 'ble', '-a', printer_address, tmp_path]
-        
-        logging.info(f"Printing label with command: {' '.join(print_cmd)}")
-        print_result = subprocess.run(print_cmd, capture_output=True, text=True, check=True)
-        logging.info(f"Label printed: {print_result.stdout}")
+        # Print the label via the Qutie BLE printer library.
+        printer_address = os.getenv('PRINTER_ADDRESS') or os.getenv('QUTIE_PRINTER_ADDRESS')
+        logging.info(f"Printing label via Qutie printer at address: {printer_address}")
+        print_with_qutie_printer(tmp_path, printer_address=printer_address)
         
         # Clean up temporary file
         try:

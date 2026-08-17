@@ -6,3 +6,4 @@ flask
 pillow
 qrcode
 cairosvg
+#qutie-printer
