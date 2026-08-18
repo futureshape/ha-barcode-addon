@@ -13,10 +13,13 @@ COPY run.sh /
 RUN chmod a+x /run.sh
 
 COPY barcode.py /
+COPY printer_adapter.py /
 COPY make_label.py /
 COPY DMMono-Medium.ttf /
 
 COPY webapp/ /webapp/
+
+ENV PYTHONPATH=/
 
 # pynput isn't packaged in Alpine Linux
 # Install runtime dependencies not available in apk and the Qutie BLE printer library.
